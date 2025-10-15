@@ -73,7 +73,6 @@ jobs:
           name: AmigaLive-macOS-universal
           path: src-tauri/target/release/bundle/macos/*
 
-
   build-linux:
     runs-on: ubuntu-latest
     steps:
