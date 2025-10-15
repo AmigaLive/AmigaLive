@@ -1,4 +1,4 @@
-name: Build Universal macOS AmigaLive
+name: Build Cross-Platform AmigaLive
 
 on:
   push:
@@ -6,28 +6,27 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos-universal:
+  # ------------------------
+  # macOS Universal Build
+  # ------------------------
+  build-macos:
     runs-on: macos-latest
 
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 22
 
-      # Step 3: Install Rust
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      # Step 4: Install npm dependencies and Tauri CLI
       - name: Install dependencies
         working-directory: src-tauri
         run: |
@@ -36,53 +35,57 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
 
-      # Step 5: Build Intel x86_64 macOS
-      - name: Build Intel x86_64
+      - name: Build Intel x86_64 macOS
         working-directory: src-tauri
         run: |
           rustup target add x86_64-apple-darwin
           npm run tauri build -- --target x86_64-apple-darwin
 
-      # Step 6: Build Apple Silicon aarch64 macOS
-      - name: Build Apple Silicon aarch64
+      - name: Build Apple Silicon aarch64 macOS
         working-directory: src-tauri
         run: |
           rustup target add aarch64-apple-darwin
           npm run tauri build -- --target aarch64-apple-darwin
 
-      # Step 7: Merge apps into universal binary
       - name: Create universal macOS app
         working-directory: src-tauri
         run: |
           mkdir -p target/release/bundle/macos
-          # Move architecture-specific builds
           mv target/x86_64-apple-darwin/release/bundle/macos/AmigaLive.app target/release/bundle/macos/AmigaLive-x86_64.app
           mv target/aarch64-apple-darwin/release/bundle/macos/AmigaLive.app target/release/bundle/macos/AmigaLive-aarch64.app
-          # Ensure Contents/MacOS exists for universal app
           mkdir -p target/release/bundle/macos/AmigaLive.app/Contents/MacOS
-          # Merge Mach-O binaries into one universal binary
           lipo -create \
             target/release/bundle/macos/AmigaLive-x86_64.app/Contents/MacOS/AmigaLive \
             target/release/bundle/macos/AmigaLive-aarch64.app/Contents/MacOS/AmigaLive \
             -output target/release/bundle/macos/AmigaLive.app/Contents/MacOS/AmigaLive
 
-      # Step 8: Upload universal macOS artifacts
-      - name: Upload universal macOS artifacts
+      - name: Debug macOS build folder
+        run: ls -R src-tauri/target/release/bundle/macos
+
+      - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AmigaLive-macOS-universal
+          name: AmigaLive-macOS
           path: src-tauri/target/release/bundle/macos/*
 
+  # ------------------------
+  # Linux Build
+  # ------------------------
   build-linux:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
-        with: node-version: 22
+        with:
+          node-version: 22
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+
       - name: Install dependencies
         working-directory: src-tauri
         run: |
@@ -90,33 +93,51 @@ jobs:
           npm install -g @tauri-apps/cli
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
+
       - name: Build Linux app
         working-directory: src-tauri
         run: npm run tauri build
+
+      - name: Debug Linux build folder
+        run: ls -R src-tauri/target/release/bundle/linux
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AmigaLive-Linux
           path: src-tauri/target/release/bundle/linux/*
 
+  # ------------------------
+  # Windows Build
+  # ------------------------
   build-windows:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
-        with: node-version: 22
+        with:
+          node-version: 22
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+
       - name: Install dependencies
         working-directory: src-tauri
         run: |
           npm install
           npm install -g @tauri-apps/cli
+
       - name: Build Windows app
         working-directory: src-tauri
         run: npm run tauri build
+
+      - name: Debug Windows build folder
+        run: dir src-tauri\target\release\bundle\nsis
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -72,3 +72,54 @@ jobs:
         with:
           name: AmigaLive-macOS-universal
           path: src-tauri/target/release/bundle/macos/*
+
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: node-version: 22
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install dependencies
+        working-directory: src-tauri
+        run: |
+          npm install
+          npm install -g @tauri-apps/cli
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          . "$HOME/.cargo/env"
+      - name: Build Linux app
+        working-directory: src-tauri
+        run: npm run tauri build
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmigaLive-Linux
+          path: src-tauri/target/release/bundle/linux/*
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: node-version: 22
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install dependencies
+        working-directory: src-tauri
+        run: |
+          npm install
+          npm install -g @tauri-apps/cli
+      - name: Build Windows app
+        working-directory: src-tauri
+        run: npm run tauri build
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmigaLive-Windows
+          path: src-tauri/target/release/bundle/msi/*
