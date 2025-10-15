@@ -20,15 +20,15 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis",
-      "app",
-      "dmg",
-      "deb",
-      "appimage",
-      "rpm"
+    "targets": ["nsis", "app", "dmg", "deb", "appimage", "rpm"],
+    "identifier": "com.amigalive.launcher",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns"
     ],
-    "category": "Game",
+    "category": "public.app-category.games",
     "copyright": "© 2025 AmigaLive"
   }
 }
