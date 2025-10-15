@@ -55,8 +55,12 @@ jobs:
         working-directory: src-tauri
         run: |
           mkdir -p target/release/bundle/macos
+          # Move architecture-specific builds
           mv target/x86_64-apple-darwin/release/bundle/macos/AmigaLive.app target/release/bundle/macos/AmigaLive-x86_64.app
           mv target/aarch64-apple-darwin/release/bundle/macos/AmigaLive.app target/release/bundle/macos/AmigaLive-aarch64.app
+          # Ensure Contents/MacOS exists for universal app
+          mkdir -p target/release/bundle/macos/AmigaLive.app/Contents/MacOS
+          # Merge Mach-O binaries into one universal binary
           lipo -create \
             target/release/bundle/macos/AmigaLive-x86_64.app/Contents/MacOS/AmigaLive \
             target/release/bundle/macos/AmigaLive-aarch64.app/Contents/MacOS/AmigaLive \
