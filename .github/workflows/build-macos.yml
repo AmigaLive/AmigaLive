@@ -1,48 +1,63 @@
-name: Build macOS AmigaLive
+name: Build Universal macOS AmigaLive
 
-# Trigger workflow on push to main branch or manual trigger
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-macos:
+  build-macos-universal:
     runs-on: macos-latest
 
     steps:
-      # Step 1: Checkout your code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Setup Node.js
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 22
 
-      # Step 3: Install Rust
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      # Step 4: Install dependencies
-      - name: Install npm dependencies and Tauri CLI
+      - name: Install dependencies
         run: |
           npm install
           npm install -g @tauri-apps/cli
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
 
-      # Step 5: Build the app
-      - name: Build Tauri app (macOS)
-        run: npm run tauri build
+      # Step 1: Build Intel x86_64
+      - name: Build x86_64 macOS
+        run: |
+          rustup target add x86_64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          npm run tauri build -- --target x86_64-apple-darwin
 
-      # Step 6: Upload built artifacts
-      - name: Upload build artifacts
+      # Step 2: Build Apple Silicon aarch64
+      - name: Build aarch64 macOS
+        run: |
+          rustup target add aarch64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          npm run tauri build -- --target aarch64-apple-darwin
+
+      # Step 3: Merge apps into universal binary
+      - name: Create universal app
+        run: |
+          mv src-tauri/target/release/bundle/macos/AmigaLive.app src-tauri/target/release/bundle/macos/AmigaLive-x86_64.app
+          mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/AmigaLive.app src-tauri/target/release/bundle/macos/AmigaLive-aarch64.app
+          # Merge binaries
+          lipo -create \
+            src-tauri/target/release/bundle/macos/AmigaLive-x86_64.app/Contents/MacOS/AmigaLive \
+            src-tauri/target/release/bundle/macos/AmigaLive-aarch64.app/Contents/MacOS/AmigaLive \
+            -output src-tauri/target/release/bundle/macos/AmigaLive.app/Contents/MacOS/AmigaLive
+
+      - name: Upload universal macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AmigaLive-macOS
+          name: AmigaLive-macOS-universal
           path: src-tauri/target/release/bundle/macos/*
