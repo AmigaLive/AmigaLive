@@ -83,7 +83,10 @@ jobs:
             build-essential \
             libwebkit2gtk-4.1-dev \
             libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev
+            libjavascriptcoregtk-4.1-dev \
+            wget \
+            fuse \
+            patchelf
 
       - name: Install npm and Tauri
         working-directory: src-tauri
@@ -93,15 +96,28 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
 
-      - name: Build Linux app
-        working-directory: src-tauri
-        run: npm run tauri build
+      - name: Fix AppImage permissions before build
+        run: |
+          chmod +x /usr/bin/* || true
+          chmod +x ~/.cargo/bin/* || true
 
-      - name: Upload Linux artifact
+      - name: Build Linux app (AppImage + deb)
+        working-directory: src-tauri
+        run: |
+          npm run tauri build || true
+          # Ensure linuxdeploy binaries are executable if downloaded
+          chmod +x target/release/bundle/appimage/*.AppImage || true
+          chmod +x target/release/bundle/appimage/* || true
+          # Retry build to finalize AppImage creation
+          npm run tauri build
+
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AmigaLive-Linux
-          path: src-tauri/target/release/bundle/linux/*
+          path: |
+            src-tauri/target/release/bundle/deb/*
+            src-tauri/target/release/bundle/appimage/*
 
   build-windows:
     runs-on: windows-latest
