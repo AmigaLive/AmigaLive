@@ -42,10 +42,20 @@ jobs:
             libsoup-3.0-dev webkit2gtk-4.1 libwebkit2gtk-4.1-dev \
             patchelf pkg-config curl file
 
+      # ---- Fix AppImage bundler permissions ----
+      - name: Fix AppImage permissions (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p ~/.cache/tauri
+          chmod +x ~/.cache/tauri || true
+          echo "Ensuring AppImage tools will be executable"
+
       - name: Install frontend dependencies
         run: npm install
 
       - name: Build Tauri app
+        env:
+          TAURI_BUNDLE_APPIMAGE: "true"
         run: npm run tauri build
 
       - name: Upload artifacts
