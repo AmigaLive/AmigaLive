@@ -32,33 +32,51 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # ---- Linux dependencies ----
+      # --- Linux dependencies for Tauri ---
       - name: Install dependencies (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libgtk-3-dev libayatana-appindicator3-dev \
-            libsoup-3.0-dev webkit2gtk-4.1 libwebkit2gtk-4.1-dev \
-            patchelf pkg-config curl file
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            libsoup-3.0-dev \
+            webkit2gtk-4.1 \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            pkg-config \
+            curl \
+            file \
+            wget
 
-      # ---- Fix AppImage bundler permissions ----
+      # --- Fix permissions before Tauri runs ---
       - name: Fix AppImage permissions (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir -p ~/.cache/tauri
-          chmod +x ~/.cache/tauri || true
-          echo "Ensuring AppImage tools will be executable"
+          chmod -R +x ~/.cache || true
+          echo "✅ Ensured all AppImage helpers are executable"
 
+      # --- Install frontend dependencies ---
       - name: Install frontend dependencies
         run: npm install
 
+      # --- Build the Tauri app ---
       - name: Build Tauri app
         env:
           TAURI_BUNDLE_APPIMAGE: "true"
         run: npm run tauri build
 
-      - name: Upload artifacts
+      # --- Retry fix for linuxdeploy if failed the first time ---
+      - name: Re-run linuxdeploy manually if missing (Linux only)
+        if: matrix.os == 'ubuntu-latest' && failure()
+        run: |
+          echo "Attempting manual fix for linuxdeploy..."
+          find ~/.cache -type f -iname '*.AppImage' -exec chmod +x {} \;
+          npm run tauri build
+
+      # --- Upload artifacts for each platform ---
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AmigaLive-${{ matrix.target }}
