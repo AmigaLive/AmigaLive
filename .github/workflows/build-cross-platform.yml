@@ -32,6 +32,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # ---- Linux dependencies ----
       - name: Install dependencies (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -42,11 +43,9 @@ jobs:
             patchelf pkg-config curl file
 
       - name: Install frontend dependencies
-        working-directory: ./src-tauri
         run: npm install
 
       - name: Build Tauri app
-        working-directory: ./src-tauri
         run: npm run tauri build
 
       - name: Upload artifacts
