@@ -1,4 +1,4 @@
-name: Build Cross-Platform AmigaLive
+name: Build AmigaLive Cross-Platform
 
 on:
   push:
@@ -6,14 +6,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ------------------------
-  # macOS Universal Build
-  # ------------------------
-  build-macos:
+  build-macos-universal:
     runs-on: macos-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -35,13 +31,13 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
 
-      - name: Build Intel x86_64 macOS
+      - name: Build Intel x86_64
         working-directory: src-tauri
         run: |
           rustup target add x86_64-apple-darwin
           npm run tauri build -- --target x86_64-apple-darwin
 
-      - name: Build Apple Silicon aarch64 macOS
+      - name: Build Apple Silicon aarch64
         working-directory: src-tauri
         run: |
           rustup target add aarch64-apple-darwin
@@ -59,28 +55,19 @@ jobs:
             target/release/bundle/macos/AmigaLive-aarch64.app/Contents/MacOS/AmigaLive \
             -output target/release/bundle/macos/AmigaLive.app/Contents/MacOS/AmigaLive
 
-      - name: Debug macOS build folder
-        run: ls -R src-tauri/target/release/bundle/macos
-
-      - name: Upload macOS artifacts
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AmigaLive-macOS
+          name: AmigaLive-macOS-universal
           path: src-tauri/target/release/bundle/macos/*
 
-  # ------------------------
-  # Linux Build
-  # ------------------------
   build-linux:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-node@v3
         with:
           node-version: 22
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -94,10 +81,11 @@ jobs:
             libglib2.0-dev \
             libgtk-3-dev \
             build-essential \
-            libjavascriptcoregtk-4.1-dev \
-            libsoup3.0-dev
+            libwebkit2gtk-4.1-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
 
-      - name: Install npm dependencies and Tauri CLI
+      - name: Install npm and Tauri
         working-directory: src-tauri
         run: |
           npm install
@@ -109,34 +97,25 @@ jobs:
         working-directory: src-tauri
         run: npm run tauri build
 
-      - name: Debug Linux build folder
-        run: ls -R src-tauri/target/release/bundle/linux
-
-      - name: Upload Linux artifacts
+      - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: AmigaLive-Linux
           path: src-tauri/target/release/bundle/linux/*
 
-  # ------------------------
-  # Windows Build
-  # ------------------------
   build-windows:
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-node@v3
         with:
           node-version: 22
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - name: Install npm dependencies and Tauri CLI
+      - name: Install dependencies
         working-directory: src-tauri
         run: |
           npm install
@@ -146,10 +125,7 @@ jobs:
         working-directory: src-tauri
         run: npm run tauri build
 
-      - name: Debug Windows build folder
-        run: dir src-tauri\target\release\bundle\nsis
-
-      - name: Upload Windows artifacts
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: AmigaLive-Windows
