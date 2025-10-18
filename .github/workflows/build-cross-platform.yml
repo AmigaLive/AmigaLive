@@ -3,7 +3,7 @@ name: Build Cross-Platform AmigaLive
 on:
   push:
     branches: [ main ]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-ubuntu:
@@ -30,6 +30,7 @@ jobs:
         run: npm install -g @tauri-apps/cli
 
       - name: Build for Linux
+        working-directory: src-tauri
         run: npm run tauri build
 
       - name: Upload Linux Artifacts
@@ -57,20 +58,24 @@ jobs:
         run: npm install -g @tauri-apps/cli
 
       - name: Build x86_64
+        working-directory: src-tauri
         run: |
           rustup target add x86_64-apple-darwin
           npm run tauri build -- --target x86_64-apple-darwin
 
       - name: Build aarch64
+        working-directory: src-tauri
         run: |
           rustup target add aarch64-apple-darwin
           npm run tauri build -- --target aarch64-apple-darwin
 
       - name: Create Universal macOS Binary
+        working-directory: src-tauri
         run: |
           mkdir -p target/release/bundle/macos
           mv target/x86_64-apple-darwin/release/bundle/macos/AmigaLive.app target/release/bundle/macos/AmigaLive-x86_64.app
           mv target/aarch64-apple-darwin/release/bundle/macos/AmigaLive.app target/release/bundle/macos/AmigaLive-aarch64.app
+          mkdir -p target/release/bundle/macos/AmigaLive.app/Contents/MacOS
           lipo -create \
             target/release/bundle/macos/AmigaLive-x86_64.app/Contents/MacOS/AmigaLive \
             target/release/bundle/macos/AmigaLive-aarch64.app/Contents/MacOS/AmigaLive \
@@ -80,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AmigaLive-macos
-          path: target/release/bundle/macos/**
+          path: src-tauri/target/release/bundle/macos/**
 
   build-windows:
     runs-on: windows-latest
@@ -101,6 +106,7 @@ jobs:
         run: npm install -g @tauri-apps/cli
 
       - name: Build for Windows
+        working-directory: src-tauri
         run: npm run tauri build
 
       - name: Upload Windows Artifact
