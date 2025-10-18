@@ -32,7 +32,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # --- Linux dependencies for Tauri ---
+      # --- Linux dependencies ---
       - name: Install dependencies (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -47,35 +47,31 @@ jobs:
             pkg-config \
             curl \
             file \
-            wget
+            wget \
+            fuse \
+            libfuse2
 
-      # --- Fix permissions before Tauri runs ---
-      - name: Fix AppImage permissions (Linux only)
+      # --- Download a working linuxdeploy manually ---
+      - name: Setup working linuxdeploy (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir -p ~/.cache/tauri
-          chmod -R +x ~/.cache || true
-          echo "✅ Ensured all AppImage helpers are executable"
+          mkdir -p $HOME/.local/bin
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -O $HOME/.local/bin/linuxdeploy
+          chmod +x $HOME/.local/bin/linuxdeploy
+          export PATH=$HOME/.local/bin:$PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "✅ Installed custom linuxdeploy binary"
 
-      # --- Install frontend dependencies ---
       - name: Install frontend dependencies
         run: npm install
 
-      # --- Build the Tauri app ---
+      # --- Build the app ---
       - name: Build Tauri app
         env:
-          TAURI_BUNDLE_APPIMAGE: "true"
+          PATH: $HOME/.local/bin:$PATH
         run: npm run tauri build
 
-      # --- Retry fix for linuxdeploy if failed the first time ---
-      - name: Re-run linuxdeploy manually if missing (Linux only)
-        if: matrix.os == 'ubuntu-latest' && failure()
-        run: |
-          echo "Attempting manual fix for linuxdeploy..."
-          find ~/.cache -type f -iname '*.AppImage' -exec chmod +x {} \;
-          npm run tauri build
-
-      # --- Upload artifacts for each platform ---
+      # --- Upload artifacts ---
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
